@@ -50,11 +50,11 @@ It should be noted, however, for codebases supporting NSPV comms: these changes 
 
 #### `validateaddress` RPC
 
-DPoW requires an `ismine` key in the validateaddress response.  The function `isMine` is a member of `CWallet` class.  In order to call it, we need to access wallet information.  To preserve backward compatiblity, `validateaddress` has been moved from `util` category of v22 API into the `wallet` category.
+DPoW requires an `ismine` key in the validateaddress response.  The function `isMine` is a member of `CWallet` class.  In order to call it, we need to access wallet information.  To preserve backward compatiblity, [`validateaddress` has been moved from `util` category of v22 API into the `wallet` category](https://github.com/who-biz/chipschain/commit/aa9642ea6a532ba25e3f792fe606a32b6970a98c).
 
 #### `getinfo`/`getblockchaininfo` RPCs
 
-Since v0.16.0, some RPCs require a loaded wallet to successfully provide a result.  This is due to the added functionality of storing multiple wallets, removal of default wallet creation, and changes to  the areas of code that may access wallet-related information.  On the positive side, the changes to wallet implementation indicate some added security.  On the negative side, it makes many dPoW-related requirements a bit more complicated to meet.  `getinfo` is one such RPC that requires a loaded wallet due to displaying wallet-based information.
+Since v0.16.0, some RPCs require a loaded wallet to successfully provide a result.  Reasons for this change were discussed briefly, above.  On the positive side, the changes to wallet implementation indicate some added security.  On the negative side, it makes many dPoW-related requirements a bit more complicated to meet.  `getinfo` is one such RPC that requires a loaded wallet due to displaying wallet-based information.
 
 `iguana`, the engine behind Komodo's dPoW, queries `getinfo` first, and then `getblockchaininfo` if the former fails.  As a result, we need to add notarization-based KVs to responses for both methods.  In the event a wallet is not loaded, `getblockchaininfo` must return all values required by iguana, for querying blockchain state of the dPoWed chain.  This does not appear to substantially interfere with efficiency of iguana.
 
@@ -74,7 +74,7 @@ ___
 
 <h3 id="connectblock"> Relocation of `komodo_connectblock` and `komodo_disconnectblock`</h3>
 
-Due to changes in the way blocks are added to index in new BTC source code, `ConnectBlock` in validation.cpp is no longer the proper place to call `komodo_connectblock()`.  If placed at this location, dPoW logic was attempting to validate *just before* the block was actually added to index.  This was resolved by moving the `komodo_connectblock()` call to the end of `ConnectTip` in validation.cpp.  This resolved all issues in display of notarization values in `getinfo/getblockchaininfo` and their recording in `notarizations` file.
+Due to changes in the way blocks are added to index in new BTC source code, `ConnectBlock` in validation.cpp is no longer the proper place to call `komodo_connectblock()`.  If placed at this location, dPoW logic was attempting to validate *just before* the block was actually added to index.  This was resolved by [moving the `komodo_connectblock()` call to the end of `ConnectTip` in validation.cpp](https://github.com/who-biz/chipschain/commit/ed28788232390491d02c5425566b186bca7b98d6).  This resolved all issues in display of notarization values in `getinfo/getblockchaininfo` and their recording in `notarizations` file.
 
 Currently, the location of `komodo_disconnectblock()` function call has not been changed, as `DisconnectTip()` calls `DisconnectBlock()`.  However, further testing should be performed to verify the proper placement of `komodo_disconnectblock`.  Relocation of `komodo_connectblock` strongly suggests `komodo_disconnectblock` may need moved as well, for dPoW to work properly.
 
