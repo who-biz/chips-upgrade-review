@@ -90,9 +90,14 @@ CHIPS v22 upgrade was posted as a bounty in KMD discord.  Submitter of bounty us
 
 Examples of an alternate approach, using Bitcoin-supplied `Ensure...` functions, for access to each variable in `NodeContext` can be seen here: https://github.com/who-biz/chipschain/commit/da385d1eff85f736921f91dfc8bfe90a98805802.  This commit has not been tested for proper functioning - it is merely meant as an example.
 
-In addition to the removal of globals such as `chainActive`, naming of these access points for blockchain history have (in some instances) changed.  For example, `chainactive` must now be accessed through `chainman->ActiveChain()`.  It should be noted that `ActiveChain()` member functions exactly the same as legacy `chainActive` in that we can access `CBlockIndex` entries by using block height as an index.  This takes the form of `chainman->ActiveChain()[nHeight]`, which looks unwieldy but works.
+In addition to the removal of globals such as `chainActive`, naming of these access points for blockchain history have (in some instances) changed.  For example, `chainactive` must now be accessed through `chainman->ActiveChain()`.  It should be noted that `ActiveChain()` functions exactly the same as legacy `chainActive` in that: we can access `CBlockIndex` entries by using block height as an index.  This takes the form of `chainman->ActiveChain()[nHeight]`, which looks unwieldy but works.
 
 ---
 
 <h3 id="keystore"> Changes to Keystore/ScriptPubKey Manager</h3>
 
+The manner in which scripts are handled has changed substantially as well, with the upgrades to wallet code.  For examining these differences, we can compare the `ImportScript` function [from v0.16.0 code](https://github.com/who-biz/chips/blob/archive-0.16.0/src/wallet/rpcdump.cpp#L208-L231) to the [rewritten version for v22.0](https://github.com/who-biz/chipschain/commit/ab875f23fbe6b316745e8b0836e6a45f802a69c3#diff-c455c7835ec6d7a6d846c1ce3d3c2ad704b01d0c2215bffb5c28c9a5a1b33369R223-R248).  This, of course, does not encapsulate all differences, but serves as a nice high-level overview of the degree to which things have changed.
+
+In v22.0 of Bitcoin core, a fair portion of legacy wallet functionality must be accessed through [`pwallet->GetLegacyScriptPubKeyMan()`](https://github.com/who-biz/chipschain/commit/ab875f23fbe6b316745e8b0836e6a45f802a69c3#diff-c455c7835ec6d7a6d846c1ce3d3c2ad704b01d0c2215bffb5c28c9a5a1b33369R231).  In this particular case, functions related to `WatchOnly` wallets are accessed through the legacy manager. Previusly, these could be accessed directly through `CWallet` pointer. 
+
+It appears as though legacy functionality was preserved to make upgrading modified codebases easier.  Security implications of using legacy `ScriptPubKeyMan` are unclear.  It is recommended that this code is reviewed more thoroughly to discern impacts of using it.  At worst, security should still be comparable to v0.16.0 wallets.
