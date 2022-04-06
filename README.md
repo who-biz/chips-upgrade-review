@@ -6,6 +6,7 @@
 - [Changes to API code](#api)
 - [Relocation of `komodo_connectblock`](#connectblock)
 - [Accessing chainstate and blockindex](#chainstate)
+- [Changes to Keystore/ScriptPubKey Manager](#keystore)
 
 <h3 id="intro"> Introduction </h3>
 
@@ -72,11 +73,11 @@ Since wallet separation seems to indicate some added security, special considera
 ___
 
 
-<h3 id="connectblock"> Relocation of `komodo_connectblock` and `komodo_disconnectblock`</h3>
+<h3 id="connectblock"> Relocation of `komodo_connectblock` and `komodo_disconnect`</h3>
 
 Due to changes in the way blocks are added to index in new BTC source code, `ConnectBlock` in validation.cpp is no longer the proper place to call `komodo_connectblock()`.  If placed at this location, dPoW logic was attempting to validate *just before* the block was actually added to index.  This was resolved by [moving the `komodo_connectblock()` call to the end of `ConnectTip` in validation.cpp](https://github.com/who-biz/chipschain/commit/ed28788232390491d02c5425566b186bca7b98d6).  This resolved all issues in display of notarization values in `getinfo/getblockchaininfo` and their recording in `notarizations` file.
 
-Currently, the location of `komodo_disconnectblock()` function call has not been changed, as `DisconnectTip()` calls `DisconnectBlock()`.  However, further testing should be performed to verify the proper placement of `komodo_disconnectblock`.  Relocation of `komodo_connectblock` strongly suggests `komodo_disconnectblock` may need moved as well, for dPoW to work properly.
+Currently, the location of `komodo_disconnect()` [function call has not been changed](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/validation.cpp#L1692), as `DisconnectTip()` calls `DisconnectBlock()`.  However, further testing should be performed to verify the proper placement of `komodo_disconnect`.  Relocation of `komodo_connectblock` strongly suggests `komodo_disconnect` may need moved as well, for dPoW to work properly.
 
 ___
 
@@ -88,3 +89,10 @@ Bitcoin has removed global access to chainstate and blockindex, requiring them t
 CHIPS v22 upgrade was posted as a bounty in KMD discord.  Submitter of bounty used this method, which appears to run in contrast to practices in BTC.  Therefore, it is my recommendation that use of a global for accessing these values be avoided (and practices established by Bitcoin developers are more closely adhered to).  Impact(s) of defining a global for NodeContext struct, and accessing the variables within it, remains unknown.
 
 Examples of an alternate approach, using Bitcoin-supplied `Ensure...` functions, for access to each variable in `NodeContext` can be seen here: https://github.com/who-biz/chipschain/commit/da385d1eff85f736921f91dfc8bfe90a98805802.  This commit has not been tested for proper functioning - it is merely meant as an example.
+
+In addition to the removal of globals such as `chainActive`, naming of these access points for blockchain history have (in some instances) changed.  For example, `chainactive` must now be accessed through `chainman->ActiveChain()`.  It should be noted that `ActiveChain()` member functions exactly the same as legacy `chainActive` in that we can access `CBlockIndex` entries by using block height as an index.  This takes the form of `chainman->ActiveChain()[nHeight]`, which looks unwieldy but works.
+
+---
+
+<h3 id="keystore"> Changes to Keystore/ScriptPubKey Manager</h3>
+
