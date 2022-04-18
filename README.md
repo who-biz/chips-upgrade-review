@@ -22,17 +22,17 @@ Since v0.16.0, RPC code in Bitcoin Core has undergone an overhaul.  This changes
 We will examine the differences in code via an accompanying video walkthrough, as it is easier than manually adding code snippets here.  Apart from the backend changes to API structure, wallet separation is a primary difference between v0.16.0 and v0.21.0 of Bitcoin source code.  Wallet separation does impact DPoW-utilized API endpoints.  We will discuss those impacted below, and propose a recommendation to accomodate the newly required `loadwallet` command into existing KMD infrastructure.
 
 **API endpoints required for dPoW:**
-  - getinfo
-  - getblockchaininfo
-  - validateaddress
-  - listunspent
-  - calc_MoM
-  - getblockhash
-  - getblock
-  - getbestblockhash
-  - sendrawtransaction
-  - signrawtransactionwithwallet
-  - decoderawtransaction
+  - [getinfo](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/wallet/rpcwallet.cpp#L2425-L2522)
+  - [getblockchaininfo](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/rpc/blockchain.cpp#L1473-L1597)
+  - [validateaddress](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/wallet/rpcwallet.cpp#L3895-L3954)
+  - [listunspent](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/wallet/rpcwallet.cpp#L2960-L3186)
+  - [calc_MoM](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/rpc/blockchain.cpp#L2806-L2845)
+  - [getblockhash](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/rpc/blockchain.cpp#L855-L882)
+  - [getblock](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/rpc/blockchain.cpp#L986-L1081)
+  - [getbestblockhash](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/rpc/blockchain.cpp#L277-L295)
+  - [sendrawtransaction](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/rpc/rawtransaction.cpp#L830-L889)
+  - [signrawtransactionwithwallet](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/wallet/rpcwallet.cpp#L3429-L3520)
+  - [decoderawtransaction](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/rpc/rawtransaction.cpp#L451-L538)
   
 #### Wallet separation impact on RPC methods
 
@@ -101,3 +101,37 @@ The manner in which scripts are handled has changed substantially as well, with 
 In v22.0 of Bitcoin core, a fair portion of legacy wallet functionality must be accessed through [`pwallet->GetLegacyScriptPubKeyMan()`](https://github.com/who-biz/chipschain/commit/ab875f23fbe6b316745e8b0836e6a45f802a69c3#diff-c455c7835ec6d7a6d846c1ce3d3c2ad704b01d0c2215bffb5c28c9a5a1b33369R231).  In this particular case, functions related to `WatchOnly` wallets are accessed through the legacy manager. Previusly, these could be accessed directly through `CWallet` pointer. 
 
 It appears as though legacy functionality was preserved to make upgrading modified codebases easier.  Security implications of using legacy `ScriptPubKeyMan` are unclear.  It is recommended that this code is reviewed more thoroughly to discern impacts of using it.  At worst, security should still be comparable to v0.16.0 wallets.
+
+---
+
+<h3 id="protocol"> Protocol/Network Communications</h3>
+
+CHIPS v0.16 codebase had already incorporated changes to peer communication from Bitcoin.  Komodo, Tokel, and others within the KMD ecosystem appear to be using older code.  As a result, this section does not concern the upgrade of CHIPS.  Due to significance of change, it has been included here for other ecosystem projects to use.  These differences matter greatly for codebases seeking to use NSPV on an upgraded BTC upstream.
+
+**Primary differences betweeen v0.16.0 comms and v22.0:**
+
+1. `PushMessage` for sending network messages to peer nodes
+
+In legacy komodo-based source code, `PushMessage` is used to send messages over network.  This is a member function of `CNode` class.  
+
+[Example](https://github.com/who-biz/komodo/blob/d7edae28b8f49de5c4ae6f7ab24b29fc5ab14320/src/komodo_nSPV_fullnode.h#L901):
+```
+std::vector<uint8_t> response;
+CNode* pfrom;
+
+pfrom->PushMessage("nSPV", response);
+```
+
+In v22.0 codebases, `PushMessage` has been moved into the `CConnman` class, which is again accessible through `CNodeContext` struct.
+
+[Example](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/komodo_nSPV_fullnode.h#L732):
+```
+CNodeContext* g_rpc_node;
+CNode* pfrom;
+
+g_rpc_node->connman->PushMessage(pfrom,CNetMsgMaker(pfrom->GetCommonVersion()).Make(NetMsgType::NSPV,response));
+```
+
+2. Formatting of `NetMsg`s (message sent between nodes)
+
+
