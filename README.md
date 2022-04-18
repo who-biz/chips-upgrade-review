@@ -128,6 +128,7 @@ In v22.0 codebases, `PushMessage` has been moved into the `CConnman` class, whic
 ```
 CNodeContext* g_rpc_node;
 CNode* pfrom;
+std::vector<uint8_t> response;
 
 g_rpc_node->connman->PushMessage(pfrom,CNetMsgMaker(pfrom->GetCommonVersion()).Make(NetMsgType::NSPV,response));
 ```
@@ -135,3 +136,4 @@ g_rpc_node->connman->PushMessage(pfrom,CNetMsgMaker(pfrom->GetCommonVersion()).M
 2. Formatting of `NetMsg`s (message sent between nodes)
 
 
+As we can see above, messages sent over network must be formatted using `CNetMsgMaker`.  Message maker function takes account of node version (to prevent incompatible communication between nodes), and formats `response` into a stream.  [The stream must be unpacked from `CDataStream` type into `std::vector<uint8_t>` for use by `komoo_nSPV` request/response functions](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/net_processing.cpp#L2827-L2835).
