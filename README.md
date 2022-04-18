@@ -7,6 +7,8 @@
 - [Relocation of `komodo_connectblock`](#connectblock)
 - [Accessing chainstate and blockindex](#chainstate)
 - [Changes to Keystore/ScriptPubKey Manager](#keystore)
+- [Protocol/Network communication](#protocol)
+- [Types for blockchain transactions, methods for fetching](#transactions)
 
 <h3 id="intro"> Introduction </h3>
 
@@ -137,3 +139,11 @@ g_rpc_node->connman->PushMessage(pfrom,CNetMsgMaker(pfrom->GetCommonVersion()).M
 
 
 As we can see above, messages sent over network must be formatted using `CNetMsgMaker`.  Message maker function takes account of node version (to prevent incompatible communication between nodes), and formats `response` into a stream.  [The stream must be unpacked from `CDataStream` type into `std::vector<uint8_t>` for use by `komoo_nSPV` request/response functions](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/net_processing.cpp#L2827-L2835).
+
+---
+
+<h3 id="transactions">  Types for blockchain transactions, methods for fetching</h3>
+
+`CTransaction` type is the most commonly used type for constructing, referencing, and evaluating blockchain transactions in v0.16.0 codebases.  Comparatively, in v22.0 codebases, this type's usage has largely been replaced by `CTransactionRef` which is of type `std::shared_ptr<const CTransaction>`.  In many instances, the real impact of this change simply requires dereferencing the new type if `CTransaction` type is necessary.  Alternatively, usage of type as a standard shared pointer suffices, if data does not need modified.
+
+In addition to the change mentioned above, fetching transactions by disk position has become less straight-forward.  In the course of adapting v22.0 codebase to function properly with dPoW, it was discovered that the code submitted by bounty payee [did not have a properly working](https://github.com/who-biz/chipschain/commit/dfc29a8274e462a232f503d4cc143615ab6a948c#diff-97c3a52bc5fad452d82670a7fd291800bae20c7bc35bb82686c2c0a4ea7b5b98L1165) `GetTransaction` function for use by dPoW (sript evaluation/validation).  To remedy this, a `ReadTxPos` function was added to `txindex`, and code from legacy KMD was added to the new v22.0 base for `GetTransaction`.  This was necessary to [get `gettxout_scriptPubKey` functioning](https://github.com/who-biz/chipschain/commit/dfc29a8274e462a232f503d4cc143615ab6a948c#), which is used in `komodo_validation` by dPoW. 
