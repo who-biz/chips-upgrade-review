@@ -124,11 +124,11 @@ CNode* pfrom;
 pfrom->PushMessage("nSPV", response);
 ```
 
-In v22.0 codebases, `PushMessage` has been moved into the `CConnman` class, which is again accessible through `CNodeContext` struct.
+In v22.0 codebases, `PushMessage` has been moved into the `CConnman` class, which is again accessible through `NodeContext` struct.
 
 [Example](https://github.com/who-biz/chipschain/blob/da385d1eff85f736921f91dfc8bfe90a98805802/src/komodo_nSPV_fullnode.h#L732):
 ```
-CNodeContext* g_rpc_node;
+NodeContext* g_rpc_node;
 CNode* pfrom;
 std::vector<uint8_t> response;
 
